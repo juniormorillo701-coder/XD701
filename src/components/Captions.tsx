@@ -9,12 +9,13 @@ type Props = {
   words: Word[];
   fromSec: number;
   toSec: number;
-  bottomPx: number;
+  placement: "top" | "bottom";
+  offsetPx: number;
   maxWordsPerPage: number;
 };
 
 /** TikTok-style word-by-word captions: white + black outline, active word yellow. */
-export const Captions: React.FC<Props> = ({ words, fromSec, toSec, bottomPx, maxWordsPerPage }) => {
+export const Captions: React.FC<Props> = ({ words, fromSec, toSec, placement, offsetPx, maxWordsPerPage }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
@@ -40,10 +41,10 @@ export const Captions: React.FC<Props> = ({ words, fromSec, toSec, bottomPx, max
   return (
     <AbsoluteFill
       style={{
-        // Anchored to the bottom: content sits right above `bottomPx`.
-        top: "auto",
         height: "auto",
-        bottom: Math.max(bottomPx, SAFE.bottom + 20),
+        ...(placement === "top"
+          ? { top: Math.max(offsetPx, SAFE.top + 20), bottom: "auto" }
+          : { top: "auto", bottom: Math.max(offsetPx, SAFE.bottom + 20) }),
         alignItems: "center",
         padding: `0 ${SAFE.side}px`,
       }}

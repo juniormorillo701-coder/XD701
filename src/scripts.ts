@@ -11,6 +11,8 @@
  *  Each script may point to different files (e.g. clip-gym.mp4, voice3.mp3).
  *
  *  Subtitles:
+ *   - With no voice file (assets.voice = null) the captions show
+ *     `captions.text`, spread evenly over the captions window.
  *   - If `voice.words` is empty, word timings are estimated automatically
  *     from the voice text and the real length of the mp3.
  *   - For frame-exact sync paste real timings in `voice.words`
@@ -33,7 +35,8 @@ export type AdScript = {
   assets: {
     clip: string;
     product: string;
-    voice: string;
+    /** Narration mp3 in /public. `null` = no voice (captions then show `captions.text`). */
+    voice: string | null;
     /** Optional click/unlock SFX in /public. `null` = silent unlock. */
     click: string | null;
   };
@@ -54,10 +57,20 @@ export type AdScript = {
   };
   /** Word-by-word TikTok captions. */
   captions: {
+    /**
+     * Text shown word-by-word when there is NO voice file (assets.voice = null).
+     * Spread evenly across fromSec–toSec. Keep it short (~2 words per second).
+     */
+    text?: string;
     fromSec: number;
     toSec: number;
-    /** Distance from the bottom of the frame to the caption baseline. Keep ≥ 300 (TikTok UI). Raise it if it covers the padlock. */
-    bottomPx: number;
+    /**
+     * "bottom" = lower third (classic TikTok). "top" = under the top safe zone
+     * (use it when the product fills the lower half of the clip, like clip.mp4).
+     */
+    placement: "top" | "bottom";
+    /** Distance in px from the chosen edge. Bottom: keep ≥ 320. Top: keep ≥ 170. */
+    offsetPx: number;
     /** Max words shown on screen at the same time. */
     maxWordsPerPage: number;
   };
@@ -86,15 +99,18 @@ const PRODUCT = {
 const ASSETS = {
   clip: "clip.mp4",
   product: "product.jpg",
-  voice: "voice.mp3",
+  // Set to "voice.mp3" once you have a narration file in /public.
+  voice: null as string | null,
   click: "click.wav",
 };
 
 /** Default timeline shared by every script (override per script if needed). */
 const TIMELINE = {
   hook: { fromSec: 0, toSec: 2 },
-  captions: { fromSec: 2, toSec: 6, bottomPx: 380, maxWordsPerPage: 3 },
-  unlock: { atSec: 6, toSec: 8 },
+  // clip.mp4: the fingerprint lights up blue at ~5.4 s → unlock flash there.
+  // Captions go on top: in clip.mp4 the padlock fills the lower half of the frame.
+  captions: { fromSec: 2, toSec: 5.4, placement: "top" as const, offsetPx: 230, maxWordsPerPage: 3 },
+  unlock: { atSec: 5.4, toSec: 8 },
   clip: { startFromSec: 0, zoomFrom: 1, zoomTo: 1.15, volume: 0 },
   endCard: { fromSec: 8, toSec: 11 },
 };
@@ -113,7 +129,7 @@ export const SCRIPTS: AdScript[] = [
       volume: 1,
       words: [],
     },
-    captions: TIMELINE.captions,
+    captions: { ...TIMELINE.captions, text: "No keys. No codes. Just your finger." },
     unlock: { ...TIMELINE.unlock, text: "No keys. No codes ⚡" },
     clip: TIMELINE.clip,
     endCard: TIMELINE.endCard,
@@ -132,7 +148,7 @@ export const SCRIPTS: AdScript[] = [
       volume: 1,
       words: [],
     },
-    captions: TIMELINE.captions,
+    captions: { ...TIMELINE.captions, text: "Sweaty hands. Wet hands. Gloves off. Doesn't matter." },
     unlock: { ...TIMELINE.unlock, text: "Under 1 second ⚡" },
     clip: TIMELINE.clip,
     endCard: TIMELINE.endCard,
@@ -151,7 +167,7 @@ export const SCRIPTS: AdScript[] = [
       volume: 1,
       words: [],
     },
-    captions: TIMELINE.captions,
+    captions: { ...TIMELINE.captions, text: "Forgot your locker code? Not anymore." },
     unlock: { ...TIMELINE.unlock, text: "One touch ⚡" },
     clip: TIMELINE.clip,
     endCard: TIMELINE.endCard,
@@ -170,7 +186,7 @@ export const SCRIPTS: AdScript[] = [
       volume: 1,
       words: [],
     },
-    captions: TIMELINE.captions,
+    captions: { ...TIMELINE.captions, text: "Up to 10 fingerprints. Zero keys." },
     unlock: { ...TIMELINE.unlock, text: "Up to 10 fingerprints ⚡" },
     clip: TIMELINE.clip,
     endCard: TIMELINE.endCard,
@@ -189,7 +205,7 @@ export const SCRIPTS: AdScript[] = [
       volume: 1,
       words: [],
     },
-    captions: TIMELINE.captions,
+    captions: { ...TIMELINE.captions, text: "USB charge. Lasts for months." },
     unlock: { ...TIMELINE.unlock, text: "USB rechargeable ⚡" },
     clip: TIMELINE.clip,
     endCard: TIMELINE.endCard,

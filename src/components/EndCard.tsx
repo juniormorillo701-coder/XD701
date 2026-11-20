@@ -36,7 +36,7 @@ export const EndCard: React.FC<Props> = ({ image, name, price, cta }) => {
     <AbsoluteFill
       style={{
         transform: `translateY(${interpolate(enter, [0, 1], [1920, 0])}px)`,
-        background: `radial-gradient(circle at 50% 42%, #FFFFFF 0%, #FFFFFF 38%, #E6F1FF 75%, #CFE4FF 100%)`,
+        background: `radial-gradient(ellipse 75% 45% at 50% 45%, #FFFFFF 0%, #FFFFFF 70%, #E6F1FF 90%, #CFE4FF 100%)`,
         paddingTop: SAFE.top + 40,
         paddingBottom: SAFE.bottom + 40,
         alignItems: "center",
@@ -64,7 +64,7 @@ export const EndCard: React.FC<Props> = ({ image, name, price, cta }) => {
         src={staticFile(image)}
         style={{
           width: 760,
-          height: 760,
+          height: 820,
           objectFit: "contain",
           mixBlendMode: "multiply", // white photo background blends in
           transform: `scale(${interpolate(img, [0, 1], [0.6, 1])})`,

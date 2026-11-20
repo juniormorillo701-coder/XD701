@@ -8,7 +8,7 @@ Proyecto Remotion · 1080×1920 · 30 fps · 11 s.
 | -------------- | -------------------------------------------------------- |
 | `clip.mp4`     | Manos mojadas / con guantes abriendo el candado          |
 | `product.jpg`  | Foto del producto sobre fondo blanco                     |
-| `voice.mp3`    | Narración en inglés                                      |
+| `voice.mp3`    | Narración en inglés (opcional, hoy desactivada)          |
 | `click.wav`    | Clic de desbloqueo (ya incluido, generado con `node tools/make-click.mjs`) |
 
 ## 2. Comandos
@@ -33,8 +33,11 @@ aparece como composición propia en el Studio (`Padlock-Script1` … `5`).
 
 - **Tiempos** en segundos: `hook`, `captions`, `unlock` (momento en que se
   abre el candado en el clip), `endCard` (su `toSec` define la duración total).
-- **Posición de subtítulos**: `captions.bottomPx` (sube el número si tapan
-  el candado; nunca baja de 320 px).
+- **Posición de subtítulos**: `captions.placement` (`"top"` o `"bottom"`) y
+  `captions.offsetPx`. Con el clip actual van arriba porque el candado ocupa
+  la mitad inferior.
+- **Sin voz**: `assets.voice: null` → los subtítulos muestran `captions.text`.
+  Cuando tengas `voice.mp3`, pon `voice: "voice.mp3"` en `ASSETS`.
 - **Assets por guion**: `assets.clip`, `assets.voice`… (p. ej. `voice3.mp3`).
 - **Clic opcional**: `assets.click: null` para quitarlo.
 - Los guiones 1, 3, 4 y 5 traen **texto de borrador**: reemplázalo por tu copy.

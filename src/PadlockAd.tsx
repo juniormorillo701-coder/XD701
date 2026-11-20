@@ -7,7 +7,7 @@ import { EndCard } from "./components/EndCard";
 import { HookText } from "./components/HookText";
 import { SafeZones } from "./components/SafeZones";
 import { UnlockFlash } from "./components/UnlockFlash";
-import { getScript } from "./scripts";
+import { getScript, type Word } from "./scripts";
 
 export type PadlockAdProps = {
   scriptId: string;
@@ -29,15 +29,19 @@ export const PadlockAd: React.FC<PadlockAdProps> = ({
 
   // Word timings in VIDEO time.
   const words = useMemo(() => {
-    const raw =
-      s.voice.words.length > 0
-        ? s.voice.words
-        : estimateWords(s.voice.text, voiceDurationSec ?? s.endCard.toSec - s.voice.startSec);
-    return raw.map((w) => ({
-      ...w,
-      startSec: w.startSec + s.voice.startSec,
-      endSec: w.endSec + s.voice.startSec,
-    }));
+    const shift = (list: Word[], by: number) =>
+      list.map((w) => ({ ...w, startSec: w.startSec + by, endSec: w.endSec + by }));
+
+    if (s.assets.voice && s.voice.words.length > 0) {
+      return shift(s.voice.words, s.voice.startSec);
+    }
+    if (s.assets.voice) {
+      const dur = voiceDurationSec ?? s.endCard.toSec - s.voice.startSec;
+      return shift(estimateWords(s.voice.text, dur), s.voice.startSec);
+    }
+    // No voice: on-screen text spread over the captions window.
+    const span = s.captions.toSec - s.captions.fromSec;
+    return shift(estimateWords(s.captions.text ?? s.voice.text, span, 0.1, 0.25), s.captions.fromSec);
   }, [s, voiceDurationSec]);
 
   // The clip keeps playing a few frames under the end card while it slides in.
@@ -67,7 +71,8 @@ export const PadlockAd: React.FC<PadlockAdProps> = ({
         words={words}
         fromSec={s.captions.fromSec}
         toSec={s.captions.toSec}
-        bottomPx={s.captions.bottomPx}
+        placement={s.captions.placement}
+        offsetPx={s.captions.offsetPx}
         maxWordsPerPage={s.captions.maxWordsPerPage}
       />
 
@@ -80,9 +85,11 @@ export const PadlockAd: React.FC<PadlockAdProps> = ({
         <EndCard image={s.assets.product} name={s.product.name} price={s.product.price} cta={s.product.cta} />
       </Sequence>
 
-      <Sequence from={f(s.voice.startSec)} name="Voice">
-        <Audio src={staticFile(s.assets.voice)} volume={s.voice.volume} />
-      </Sequence>
+      {s.assets.voice ? (
+        <Sequence from={f(s.voice.startSec)} name="Voice">
+          <Audio src={staticFile(s.assets.voice)} volume={s.voice.volume} />
+        </Sequence>
+      ) : null}
 
       {showSafeZones ? <SafeZones /> : null}
     </AbsoluteFill>

@@ -18,7 +18,7 @@ const safe = async <T,>(p: Promise<T>): Promise<T | undefined> => {
 const calculateMetadata: CalculateMetadataFunction<PadlockAdProps> = async ({ props }) => {
   const s = getScript(props.scriptId);
   const [voiceDurationSec, clipMeta] = await Promise.all([
-    safe(getAudioDurationInSeconds(staticFile(s.assets.voice))),
+    s.assets.voice ? safe(getAudioDurationInSeconds(staticFile(s.assets.voice))) : undefined,
     safe(getVideoMetadata(staticFile(s.assets.clip))),
   ]);
   return {
