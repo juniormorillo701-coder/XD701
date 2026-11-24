@@ -1,4 +1,4 @@
-"""Video promo del candado con huella: historia de Juan + narracion (espeak-ng/mbrola)."""
+"""Promo video for the fingerprint padlock: John's story + natural narration (Piper voice)."""
 import math, subprocess, wave, os, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 SRC = sys.argv[1]            # captura con el candado
 WORK = sys.argv[2]           # carpeta temporal
 OUT = sys.argv[3]            # mp4 final
+VOICE = sys.argv[4]          # carpeta del modelo de voz piper (.onnx + .onnx.json)
 os.makedirs(WORK, exist_ok=True)
 W, H, FPS = 1080, 1920, 30
 FB = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -13,20 +14,23 @@ def font(s): return ImageFont.truetype(FB, s)
 
 # ---------- narracion ----------
 SCENES = [
-    ("gym",     "Juan fue al gimnasio, como todos los días."),
-    ("locker",  "Dejó su celular, su cartera y sus llaves en el locker, con un candado barato."),
-    ("robbed",  "Pero cuando volvió, el locker estaba abierto. Le robaron todo."),
-    ("warn",    "No dejes que te pase lo mismo."),
-    ("reveal",  "Este es el candado inteligente con huella digital."),
-    ("feat",    "Se abre solo con tu dedo. Sin llaves que perder, y sin combinaciones que olvidar."),
-    ("uses",    "Perfecto para el gym, la escuela, tu maleta o tu bodega."),
-    ("cta",     "Protege lo tuyo. Consíguelo hoy por solo dieciséis noventa y nueve."),
+    ("gym",     "John went to the gym, just like every day."),
+    ("locker",  "He left his phone, his wallet, and his keys in the locker, with a cheap lock."),
+    ("robbed",  "But when he came back, the locker was open. Everything was gone."),
+    ("warn",    "Don't let this happen to you."),
+    ("reveal",  "Meet the smart fingerprint padlock."),
+    ("feat",    "It opens with just your finger. No keys to lose, and no codes to forget."),
+    ("uses",    "Perfect for the gym, school, your luggage, or your storage unit."),
+    ("cta",     "Protect what's yours. Get it today for only sixteen ninety-nine."),
 ]
-CAPS = {"cta": "Protege lo tuyo. Consíguelo hoy por solo $16.99"}
+CAPS = {"cta": "Protect what's yours. Get it today for only $16.99"}
+import glob
+from piper import PiperVoice
+TTS = PiperVoice.load(glob.glob(f"{VOICE}/*.onnx")[0])
 durs = []
 for i, (k, txt) in enumerate(SCENES):
     f = f"{WORK}/n{i}.wav"
-    subprocess.run(["espeak-ng", "-v", "es-419+m3", "-s", "145", "-p", "40", "-w", f, txt], check=True)
+    with wave.open(f, "wb") as w: TTS.synthesize_wav(txt, w)
     with wave.open(f) as w: durs.append(w.getnframes() / w.getframerate())
 PAD = 0.5
 starts = np.cumsum([0] + [d + PAD for d in durs])
@@ -61,12 +65,14 @@ with wave.open(f"{WORK}/audio.wav", "w") as w:
 
 # ---------- imagen del candado ----------
 src = Image.open(SRC).convert("RGB").crop((140, 680, 440, 1150))
-px = src.load()
-for y in range(src.height):
-    for x in range(src.width):
-        r, g, b = px[x, y]
-        if (x - 284) ** 2 + (y - 455) ** 2 < 66 ** 2:   # tapa el boton naranja
-            px[x, y] = (22, 22, 24) if (x < 268 and y < 437) else (255, 255, 255)
+# el boton naranja tapa la esquina inferior derecha: se reconstruye en espejo con la izquierda
+# (el cuerpo va de x=22 a x=275, eje en 148.5)
+a = np.array(src)
+for y in range(380, src.height):
+    for x in range(200, src.width):
+        mx = 297 - x
+        a[y, x] = a[y, mx] if mx >= 0 else (255, 255, 255)
+src = Image.fromarray(a)
 # quitar fondo blanco -> transparente
 lock = src.convert("RGBA"); arr = np.array(lock)
 wht = (arr[..., :3].min(axis=2) > 235)
@@ -182,16 +188,16 @@ def scene(k, t, D):
         if p > 0.4:
             s = ease((p - 0.4) * 4)
             f = font(int(120 * s) + 1)
-            ctext(d, "¡LE ROBARON", 150, f, fill=(255, 255, 255), dx=shake, stroke=6)
-            ctext(d, "TODO!", 290, f, fill=(255, 60, 60), dx=-shake, stroke=6)
+            ctext(d, "EVERYTHING", 150, f, fill=(255, 255, 255), dx=shake, stroke=6)
+            ctext(d, "WAS GONE!", 290, f, fill=(255, 60, 60), dx=-shake, stroke=6)
         person(d, 820, 1250, 0.8, mood="sad")
         if int(t * 6) % 2 == 0 and p < 0.5:
             d.rectangle([0, 0, W, H], fill=(255, 0, 0, 60))
     elif k == "warn":
         s = ease(p * 2.5)
-        ctext(d, "No dejes que", 640, font(int(95 * s) + 1))
-        ctext(d, "te pase", 780, font(int(95 * s) + 1))
-        ctext(d, "A TI", 930, font(int(190 * s) + 1), fill=(255, 190, 60))
+        ctext(d, "Don't let this", 640, font(int(95 * s) + 1))
+        ctext(d, "happen", 780, font(int(95 * s) + 1))
+        ctext(d, "TO YOU", 930, font(int(190 * s) + 1), fill=(255, 190, 60))
     elif k == "reveal":
         cx, cy = 540, 900
         rays = Image.new("RGBA", (W, H), (0, 0, 0, 0)); rd = ImageDraw.Draw(rays)
@@ -204,13 +210,13 @@ def scene(k, t, D):
         sc = lerp(0.2, 1.0, ease(p * 2.2)) * (1 + 0.02 * math.sin(t * 4))
         paste_center(img, LOCK_BIG, cx, cy, sc)
         d = ImageDraw.Draw(img, "RGBA")
-        ctext(d, "CANDADO", 110, font(110), stroke=5)
-        ctext(d, "CON HUELLA", 240, font(110), fill=(255, 235, 120), stroke=5)
+        ctext(d, "SMART", 110, font(110), stroke=5)
+        ctext(d, "FINGERPRINT LOCK", 240, font(90), fill=(255, 235, 120), stroke=5)
     elif k == "feat":
         glow(img, 540, 560, 300, (60, 200, 220), 90)
         paste_center(img, LOCK_MED, 540, 560, 0.9 + 0.015 * math.sin(t * 3))
         d = ImageDraw.Draw(img, "RGBA")
-        feats = [("Se abre con tu huella", 0.0), ("Sin llaves que perder", 0.35), ("Sin claves que olvidar", 0.62)]
+        feats = [("Opens with your finger", 0.0), ("No keys to lose", 0.35), ("No codes to forget", 0.62)]
         for i, (tx, st) in enumerate(feats):
             e = ease((p - st) * 4)
             if e <= 0: continue
@@ -220,9 +226,9 @@ def scene(k, t, D):
             d.line([x + 38, y + 54, x + 50, y + 68, x + 72, y + 36], fill=(10, 30, 40), width=9)
             d.text((x + 115, y + 26), tx, font=font(50), fill=(255, 255, 255))
     elif k == "uses":
-        ctext(d, "Ideal para...", 160, font(90))
+        ctext(d, "Perfect for...", 160, font(90))
         paste_center(img, LOCK_SM, 540, 560, 1.0)
-        uses = ["GYM", "ESCUELA", "MALETA", "BODEGA"]
+        uses = ["GYM", "SCHOOL", "LUGGAGE", "STORAGE"]
         for i, u in enumerate(uses):
             e = ease((p - i * 0.18) * 4)
             if e <= 0: continue
@@ -235,12 +241,12 @@ def scene(k, t, D):
         glow(img, 540, 700, 360, (255, 255, 255), 140)
         paste_center(img, LOCK_MED, 540, 700, 1 + 0.03 * math.sin(t * 5))
         d = ImageDraw.Draw(img, "RGBA")
-        ctext(d, "PROTEGE LO TUYO", 140, font(95), stroke=5)
+        ctext(d, "PROTECT WHAT'S YOURS", 150, font(66), stroke=5)
         pulse = 1 + 0.06 * math.sin(t * 7) * ease(p * 3)
         bw, bh = 760 * pulse, 190 * pulse; by = 1070
         d.rounded_rectangle([540 - bw / 2, by, 540 + bw / 2, by + bh], 95, fill=(255, 255, 255))
-        f = font(int(100 * pulse)); ctext(d, "SOLO $16.99", by + bh / 2 - 58 * pulse, f, fill=(220, 50, 50))
-        ctext(d, "¡Pídelo hoy!", 1300, font(75), stroke=4)
+        f = font(int(100 * pulse)); ctext(d, "ONLY $16.99", by + bh / 2 - 58 * pulse, f, fill=(220, 50, 50))
+        ctext(d, "Order now!", 1300, font(75), stroke=4)
     return img
 
 # ---------- render ----------
