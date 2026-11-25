@@ -7,7 +7,7 @@
   ["denied", "And if someone else tries? Denied.", 3.6],
   ["cta",    "Upgrade today for only sixteen ninety-nine. Use code, bienvenido ten, for ten percent off. Link in bio.", 6.0]
  ],
- "text": {"drop": "STOP USING KEYS.", "scan": "ONE TOUCH.", "denied": "SOMEONE ELSE?", "cta": "UPGRADE NOW"},
+ "text": {"drop": "STOP USING KEYS.", "scan": "ONE TOUCH.", "denied": "NOT YOU?", "cta": "UPGRADE NOW"},
  "bg": {"drop": ["#2a1846", "#07050d"], "scan": ["#123a2c", "#040a08"], "spin": ["#24163d", "#06040c"], "cta": ["#8a4dff", "#2a0f5c"]},
  "rim": ["#a066ff", "#33ff99"],
  "ring": "#b98cff"
