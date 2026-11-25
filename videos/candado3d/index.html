@@ -206,7 +206,8 @@ function hideAll() { for (const id of ['headline', 'sub', 't1', 't2', 't3', 'den
 
 // ---------- timeline ----------
 let TL = null;
-window.setup = tl => { TL = tl; };
+window.setup = tl => { TL = tl; if (tl.ring) podRing.material.emissive.set(tl.ring); };
+const T = (k, d) => (TL.text && TL.text[k]) || d;
 function sceneAt(t) {
   for (const s of TL.scenes) if (t < s.start + s.dur) return s;
   return TL.scenes[TL.scenes.length - 1];
@@ -214,13 +215,14 @@ function sceneAt(t) {
 window.renderAt = function (t) {
   const S = sceneAt(t), lt = t - S.start, D = S.dur, k = S.key;
   hideAll();
-  bg.style.background = `radial-gradient(ellipse at 50% 42%, ${BGS[k][0]} 0%, ${BGS[k][1]} 75%)`;
+  const bgc = (TL.bg && TL.bg[k]) || BGS[k];
+  bg.style.background = `radial-gradient(ellipse at 50% 42%, ${bgc[0]} 0%, ${bgc[1]} 75%)`;
   stage.visible = k !== 'places'; places.visible = k === 'places'; glove.visible = k === 'denied';
   podium.visible = k === 'cta'; ring.material.opacity = 0;
   lock.position.set(0, 0, 0); lock.rotation.set(0, 0, 0); lock.scale.setScalar(1); setShackle(lock, 0);
   fpMat.emissive.set(0x2fe0d0); fpMat.emissiveIntensity = 0.35; ledMat.emissive.set(0x22ff66); ledMat.emissiveIntensity = 0.6;
   lock.userData.glow.material.opacity = 0;
-  rimA.color.set(0x33ddff); rimB.color.set(0xff7a33);
+  rimA.color.set(TL.rim ? TL.rim[0] : 0x33ddff); rimB.color.set(TL.rim ? TL.rim[1] : 0xff7a33);
   let cam = V(0, 0.8, 12), look = V(0, 0.2, 0);
 
   if (k === 'drop') {
@@ -232,7 +234,7 @@ window.renderAt = function (t) {
     cam = V(shake, 0.9 + shake, 12.5 - lt * 0.5); look = V(0, 0.3, 0);
     if (lt > 0.55) { const r = (lt - 0.55); ring.scale.setScalar(1 + r * 6); ring.material.opacity = Math.max(0, 0.9 - r * 1.1); }
     shadow.material.opacity = clamp(1 - y / 6);
-    if (lt > 0.6) show(headline, ease((lt - 0.6) / 0.25), 0, lerp(1.4, 1, back((lt - 0.6) / 0.35))), headline.innerHTML = 'NO KEYHOLE.';
+    if (lt > 0.6) show(headline, ease((lt - 0.6) / 0.25), 0, lerp(1.4, 1, back((lt - 0.6) / 0.35))), headline.innerHTML = T('drop', 'NO KEYHOLE.');
   }
   if (k === 'scan') {
     const sp = V(0, -1.35, 0);
@@ -246,7 +248,7 @@ window.renderAt = function (t) {
     fpMat.emissiveIntensity = 0.35 + 2.2 * Math.sin(Math.PI * sc);
     if (lt > 1.9) { ledMat.emissiveIntensity = 4; fpMat.emissive.set(0x33ff88); fpMat.emissiveIntensity = Math.max(0.5, 2.5 - (lt - 1.9) * 2); }
     setShackle(lock, clamp((lt - 2.1) / 0.8));
-    show(headline, ease((lt - 2.2) / 0.3), 0, lerp(1.3, 1, back((lt - 2.2) / 0.4))); headline.innerHTML = 'TOUCH. OPEN.';
+    show(headline, ease((lt - 2.2) / 0.3), 0, lerp(1.3, 1, back((lt - 2.2) / 0.4))); headline.innerHTML = T('scan', 'TOUCH. OPEN.');
     rimA.color.set(0x2fe0d0);
   }
   if (k === 'spin') {
@@ -295,14 +297,14 @@ window.renderAt = function (t) {
       rimA.color.set(0xff2233); rimB.color.set(0xff2233);
     }
     if (lt > 1.3) { const e = ease((lt - 1.3) / 0.2); show($('denied'), e, 0, lerp(1.5, 1, back((lt - 1.3) / 0.3))); $('denied').style.transform += ` translateX(${(lt < 1.7 ? Math.sin(lt * 90) * 14 : 0)}px)`; }
-    headline.innerHTML = 'ANYONE ELSE?'; show(headline, ease((lt - 0.2) / 0.3));
+    headline.innerHTML = T('denied', 'ANYONE ELSE?'); show(headline, ease((lt - 0.2) / 0.3));
   }
   if (k === 'cta') {
     lock.rotation.y = lt * 0.9; lock.position.y = 0.15;
     cam = V(Math.sin(lt * 0.25) * 2, lerp(2.6, 1.8, ease(lt / 3)), lerp(18, 16.5, ease(lt / 3))); look = V(0, -0.8, 0);
     podRing.material.emissiveIntensity = 2.5 + Math.sin(lt * 4) * 0.8;
     shadow.material.opacity = 0.6; rimA.color.set(0xffd27a);
-    headline.innerHTML = 'GET YOURS'; show(headline, ease((lt - 0.1) / 0.3));
+    headline.innerHTML = T('cta', 'GET YOURS'); show(headline, ease((lt - 0.1) / 0.3));
     const pe = ease((lt - 0.5) / 0.3); show($('price'), pe, 0, lerp(1.6, 1, back((lt - 0.5) / 0.4)) * (1 + 0.03 * Math.sin(lt * 6)));
     const ce = ease((lt - 2.1) / 0.3); show($('code'), ce, (1 - ce) * 50);
     const be = ease((lt - 4.0) / 0.3); show($('bio'), be, Math.sin(lt * 6) * 8 * be);

@@ -1,0 +1,13 @@
+{
+ "lines": [
+  ["denied", "A thief tried to open my lock. Denied.", 3.6],
+  ["scan",   "But when I touch it... it opens.", 4.2],
+  ["spin",   "No keys. No codes. Only your fingerprint.", 4.5],
+  ["places", "Lock your gym locker, your backpack, your suitcase.", 5.0],
+  ["cta",    "Get yours for sixteen ninety-nine. Code, bienvenido ten, saves you ten percent. Link in bio.", 6.0]
+ ],
+ "text": {"denied": "THIEF ALERT", "scan": "ONLY ME.", "cta": "STAY SAFE"},
+ "bg": {"scan": ["#0f2a4a", "#03070d"], "spin": ["#0f1f3d", "#03060c"], "cta": ["#1f6fff", "#0a1a4a"]},
+ "rim": ["#33ddff", "#3377ff"],
+ "ring": "#33ddff"
+}
