@@ -1,0 +1,221 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const c = document.getElementById('c');
+const g = c.getContext('2d');
+const W = 1080, H = 1920;
+const F = '"Inter", "DejaVu Sans", sans-serif';
+
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = x => { x = clamp(x); return 1 - Math.pow(1 - x, 3); };
+const back = x => { x = clamp(x); const s = 1.7; return 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2); };
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+
+function rr(x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+
+function bg(top, bottom) {
+  const gr = g.createLinearGradient(0, 0, 0, H);
+  gr.addColorStop(0, top); gr.addColorStop(1, bottom);
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+}
+
+// Big caption with outline (TikTok style)
+function caption(text, y, size, color = '#fff', alpha = 1, scale = 1) {
+  g.save();
+  g.globalAlpha = alpha;
+  g.translate(W / 2, y); g.scale(scale, scale);
+  g.font = `900 ${size}px ${F}`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const lines = text.split('\n');
+  lines.forEach((ln, i) => {
+    const yy = (i - (lines.length - 1) / 2) * size * 1.15;
+    g.lineWidth = size * 0.16; g.strokeStyle = '#000'; g.lineJoin = 'round';
+    g.strokeText(ln, 0, yy);
+    g.fillStyle = color; g.fillText(ln, 0, yy);
+  });
+  g.restore();
+}
+
+function pill(text, y, size, fill, color, alpha = 1, scale = 1) {
+  g.save(); g.globalAlpha = alpha;
+  g.translate(W / 2, y); g.scale(scale, scale);
+  g.font = `800 ${size}px ${F}`;
+  const w = g.measureText(text).width + size * 1.4, h = size * 1.8;
+  rr(-w / 2, -h / 2, w, h, h / 2); g.fillStyle = fill; g.fill();
+  g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(text, 0, size * 0.04);
+  g.restore();
+}
+
+// Chip bag. open = 0..1 (top opening), sealed = 0..1 (red seal line progress), stale = puffs of "air"
+function bag(cx, cy, s, { open = 0, sealed = 0, tilt = 0, sad = 0 } = {}) {
+  g.save(); g.translate(cx, cy); g.rotate(tilt); g.scale(s, s);
+  const w = 420, h = 560;
+  // body
+  g.beginPath();
+  g.moveTo(-w / 2, -h / 2 + 20);
+  for (let i = 0; i <= 10; i++) { // crimped top
+    const x = -w / 2 + (w * i) / 10;
+    const y = -h / 2 + (i % 2 ? 0 : 20) - open * 30 * Math.sin((i / 10) * Math.PI);
+    g.lineTo(x, y);
+  }
+  g.lineTo(w / 2 - 10, h / 2 - 20);
+  g.quadraticCurveTo(0, h / 2 + 20, -w / 2 + 10, h / 2 - 20);
+  g.closePath();
+  const gr = g.createLinearGradient(-w / 2, 0, w / 2, 0);
+  gr.addColorStop(0, '#d62828'); gr.addColorStop(0.5, '#f25c54'); gr.addColorStop(1, '#b51f1f');
+  g.fillStyle = gr; g.fill();
+  g.lineWidth = 8; g.strokeStyle = '#7a1010'; g.stroke();
+  // shine
+  g.globalAlpha = 0.25; g.fillStyle = '#fff';
+  rr(-w / 2 + 40, -h / 2 + 70, 40, h - 160, 20); g.fill(); g.globalAlpha = 1;
+  // label
+  g.fillStyle = '#ffd166'; rr(-150, -60, 300, 170, 30); g.fill();
+  g.fillStyle = '#7a1010'; g.font = `900 64px ${F}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('PAPITAS', 0, 0);
+  g.font = `700 34px ${F}`; g.fillText('crujientes', 0, 60);
+  // opening gap
+  if (open > 0) {
+    g.fillStyle = '#3a0808'; g.globalAlpha = open;
+    rr(-w / 2 + 20, -h / 2 + 8, w - 40, 26 * open, 12); g.fill(); g.globalAlpha = 1;
+  }
+  // seal line
+  if (sealed > 0) {
+    g.strokeStyle = '#ffb703'; g.lineWidth = 14; g.lineCap = 'round';
+    g.shadowColor = '#ff8800'; g.shadowBlur = 30;
+    g.beginPath(); g.moveTo(-w / 2 + 25, -h / 2 + 50);
+    g.lineTo(-w / 2 + 25 + (w - 50) * sealed, -h / 2 + 50); g.stroke();
+    g.shadowBlur = 0;
+  }
+  // sad face
+  if (sad > 0) {
+    g.globalAlpha = sad; g.strokeStyle = '#7a1010'; g.lineWidth = 10; g.lineCap = 'round';
+    g.beginPath(); g.arc(-50, 170, 12, 0, Math.PI * 2); g.arc(50, 170, 12, 0, Math.PI * 2);
+    g.fillStyle = '#7a1010'; g.fill();
+    g.beginPath(); g.arc(0, 240, 40, Math.PI * 1.15, Math.PI * 1.85); g.stroke();
+    g.globalAlpha = 1;
+  }
+  g.restore();
+}
+
+// Mini sealer (generic handheld clip-style)
+function sealer(x, y, s, glow = 0) {
+  g.save(); g.translate(x, y); g.scale(s, s);
+  // body
+  const gr = g.createLinearGradient(0, -60, 0, 60);
+  gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#cfd8e3');
+  rr(-170, -55, 340, 110, 50); g.fillStyle = gr; g.fill();
+  g.lineWidth = 6; g.strokeStyle = '#8a99ab'; g.stroke();
+  // slot
+  g.fillStyle = '#2b3440'; rr(-150, 30, 300, 14, 7); g.fill();
+  // button
+  g.fillStyle = '#219ebc'; g.beginPath(); g.arc(-90, -5, 26, 0, Math.PI * 2); g.fill();
+  // led
+  g.fillStyle = glow > 0 ? `rgba(255,80,40,${0.4 + 0.6 * glow})` : '#9aa5b1';
+  g.beginPath(); g.arc(110, -15, 12, 0, Math.PI * 2); g.fill();
+  if (glow > 0) { g.shadowColor = '#ff5a28'; g.shadowBlur = 40 * glow; g.fill(); g.shadowBlur = 0; }
+  g.restore();
+}
+
+function check(x, y, size, p) {
+  g.save(); g.translate(x, y); g.scale(back(p), back(p));
+  g.fillStyle = '#06d6a0'; g.beginPath(); g.arc(0, 0, size, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#fff'; g.lineWidth = size * 0.22; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(-size * 0.45, 0); g.lineTo(-size * 0.1, size * 0.35); g.lineTo(size * 0.5, -size * 0.35); g.stroke();
+  g.restore();
+}
+
+function disclosure(alpha = 1) {
+  g.save(); g.globalAlpha = 0.85 * alpha;
+  g.font = `600 30px ${F}`; g.fillStyle = '#fff'; g.textAlign = 'center';
+  g.fillText('Como afiliado de Amazon, gano comisión por compras que califican.', W / 2, H - 70);
+  g.restore();
+}
+
+function render(t) {
+  g.clearRect(0, 0, W, H);
+
+  if (t < 3.2) {
+    // SCENE 1 — hook: stale chips
+    bg('#1d3557', '#0b132b');
+    const p = ease(seg(t, 0, 0.5));
+    caption('¿Tus papitas\nse ponen viejas?', 380, 110, '#fff', p, 0.8 + 0.2 * back(seg(t, 0, 0.5)));
+    const wob = Math.sin(t * 6) * 0.04;
+    bag(W / 2, 1100, 1.25, { open: 1, tilt: wob, sad: ease(seg(t, 0.8, 1.3)) });
+    // air leaking lines
+    for (let i = 0; i < 3; i++) {
+      const k = (t * 1.2 + i / 3) % 1;
+      g.save(); g.globalAlpha = (1 - k) * ease(seg(t, 0.6, 1));
+      g.strokeStyle = '#a8dadc'; g.lineWidth = 10; g.lineCap = 'round';
+      g.beginPath(); const x = W / 2 - 120 + i * 120, y0 = 730 - k * 220;
+      g.moveTo(x, y0); g.quadraticCurveTo(x + 30, y0 - 50, x, y0 - 100); g.stroke(); g.restore();
+    }
+    pill('Y las tienes que botar...', 1620, 58, '#e63946', '#fff', ease(seg(t, 1.6, 2.1)), back(seg(t, 1.6, 2.1)));
+  } else if (t < 8) {
+    // SCENE 2 — the sealer seals the bag
+    const tt = t - 3.2;
+    bg('#ffb703', '#fb8500');
+    caption('Este mini sellador\nlas cierra en segundos', 330, 82, '#fff', ease(seg(tt, 0, 0.4)));
+    const bagY = 1150;
+    const sealP = ease(seg(tt, 1.0, 3.0));
+    bag(W / 2, bagY, 1.25, { open: 1 - sealP, sealed: sealP });
+    // sealer slides along top of bag
+    const enter = ease(seg(tt, 0.2, 1.0));
+    const sx = -200 + enter * 380 + sealP * 525;
+    sealer(sx, bagY - 330 + 40, 1.0, sealP > 0 && sealP < 1 ? 0.6 + 0.4 * Math.sin(tt * 20) : 0);
+    if (sealP >= 1) {
+      const d = seg(tt, 3.0, 3.4);
+      pill('¡Cerrada y fresca!', 1660, 66, '#06d6a0', '#073b4c', ease(d), back(d));
+      // sparkle
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + tt;
+        g.save(); g.globalAlpha = 1 - seg(tt, 3.0, 4.2);
+        g.fillStyle = '#fff'; g.beginPath();
+        g.arc(W / 2 + Math.cos(a) * 330 * ease(d), bagY - 300 + Math.sin(a) * 120 * ease(d), 14, 0, Math.PI * 2);
+        g.fill(); g.restore();
+      }
+    }
+  } else if (t < 12.2) {
+    // SCENE 3 — benefits
+    const tt = t - 8;
+    bg('#073b4c', '#023047');
+    caption('Por qué lo amo:', 300, 100, '#ffd166', ease(seg(tt, 0, 0.4)));
+    sealer(W / 2, 560, 1.6 * back(seg(tt, 0, 0.6)), 0);
+    const items = ['Snacks, café, cereal\ny más', 'Pequeño, cabe\nen un cajón', 'Adiós comida\nbotada'];
+    items.forEach((it, i) => {
+      const p = seg(tt, 0.6 + i * 0.8, 1.1 + i * 0.8);
+      const y = 880 + i * 300;
+      check(190, y, 60, p);
+      g.save(); g.globalAlpha = ease(p); g.translate((1 - ease(p)) * 80, 0);
+      g.font = `800 64px ${F}`; g.fillStyle = '#fff'; g.textAlign = 'left'; g.textBaseline = 'middle';
+      it.split('\n').forEach((ln, j, arr) => g.fillText(ln, 290, y + (j - (arr.length - 1) / 2) * 76));
+      g.restore();
+    });
+  } else {
+    // SCENE 4 — CTA
+    const tt = t - 12.2;
+    bg('#e63946', '#9d0208');
+    caption('Lo encontré\nen Amazon', 420, 120, '#fff', ease(seg(tt, 0, 0.4)), 0.8 + 0.2 * back(seg(tt, 0, 0.5)));
+    bag(W / 2 - 150, 1020, 0.75, { sealed: 1, tilt: -0.12 });
+    sealer(W / 2 + 200, 1060, 0.9, 0);
+    const pulse = 1 + 0.06 * Math.sin(tt * 8);
+    pill('Link en mi perfil', 1450, 80, '#ffd166', '#370617', ease(seg(tt, 0.5, 0.9)), back(seg(tt, 0.5, 0.9)) * pulse);
+    // arrow up
+    g.save(); g.globalAlpha = ease(seg(tt, 0.9, 1.2));
+    g.translate(W / 2, 1640 + Math.sin(tt * 6) * 18);
+    g.fillStyle = '#fff'; g.beginPath(); g.moveTo(0, -60); g.lineTo(50, 0); g.lineTo(18, 0); g.lineTo(18, 60);
+    g.lineTo(-18, 60); g.lineTo(-18, 0); g.lineTo(-50, 0); g.closePath(); g.fill(); g.restore();
+  }
+  disclosure();
+}
+window.render = render;
+window.frame = (t) => { render(t); return c.toDataURL('image/jpeg', 0.92); };
+</script>
+</body></html>
